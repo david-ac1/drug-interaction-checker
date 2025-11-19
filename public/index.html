@@ -7,30 +7,45 @@
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
+  <header>
+    <div class="container">
+      <h1>Drug Interaction Checker</h1>
+      <p class="lead">Search for a drug to see basic info and known interactions (powered by RxNorm)</p>
+    </div>
+  </header>
+
   <main class="container">
-    <h1>Drug Interaction Checker</h1>
-    <p class="lead">Search for a drug to see basic info and known interactions (powered by RxNorm)</p>
+    <div class="search-panel">
+      <div class="form-row">
+        <input id="searchInput" placeholder="Enter drug name (e.g., ibuprofen)" />
+        <button id="searchBtn">Search</button>
+      </div>
 
-    <div class="controls">
-      <input id="searchInput" placeholder="Enter drug name (e.g., ibuprofen)" />
-      <button id="searchBtn">Search</button>
+      <div class="controls-row">
+        <div class="control-group">
+          <label for="filterSeverity">Filter by Severity</label>
+          <select id="filterSeverity">
+            <option value="all">All severities</option>
+            <option value="High">Major</option>
+            <option value="Moderate">Moderate</option>
+            <option value="Low">Minor</option>
+          </select>
+        </div>
 
-      <select id="filterSeverity">
-        <option value="all">Filter: All severities</option>
-        <option value="High">Major</option>
-        <option value="Moderate">Moderate</option>
-        <option value="Low">Minor</option>
-      </select>
-
-      <select id="sortBy">
-        <option value="relevance">Sort: Relevance</option>
-        <option value="alpha">Sort: A → Z</option>
-        <option value="severity">Sort: Severity</option>
-      </select>
+        <div class="control-group">
+          <label for="sortBy">Sort Results</label>
+          <select id="sortBy">
+            <option value="relevance">Relevance</option>
+            <option value="alpha">A → Z</option>
+            <option value="severity">Severity</option>
+          </select>
+        </div>
+      </div>
     </div>
 
     <section id="results"></section>
   </main>
+  
   <script src="/script.js"></script>
 </body>
 </html>

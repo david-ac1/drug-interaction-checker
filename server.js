@@ -1,4 +1,3 @@
-// server.js
 const express = require('express');
 const fetch = require('node-fetch');
 const path = require('path');
@@ -7,6 +6,12 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Step 1: Add debug logging for all incoming requests
+app.use((req, res, next) => {
+  console.log(`[DEBUG] ${req.method} ${req.url}`);
+  next();
+});
 
 // Helper: fetch from RxNorm name search
 async function fetchRxNormByName(name) {
@@ -24,22 +29,18 @@ async function fetchInteractions(rxcui) {
   return res.json();
 }
 
+// API route for drug search
 app.get('/api/drug', async (req, res) => {
+  console.log('Hit /api/drug', req.query); // debug log
   try {
     const name = req.query.name;
     if (!name) return res.status(400).json({ error: 'Missing `name` query parameter' });
 
     const data = await fetchRxNormByName(name);
 
-    // Basic parsing: return top matched drug(s) and, if possible, rxcui interactions
-    const candidate = (data.drugGroup && data.drugGroup.conceptGroup && data.drugGroup.conceptGroup[0]) || null;
+    const result = { query: name, matches: [] };
 
-    const result = {
-      query: name,
-      matches: [],
-    };
-
-    // collect matches
+    // Collect matches
     if (data.drugGroup && data.drugGroup.conceptGroup) {
       data.drugGroup.conceptGroup.forEach(group => {
         if (!group.conceptProperties) return;
@@ -54,14 +55,13 @@ app.get('/api/drug', async (req, res) => {
       });
     }
 
-    // If we have at least one RXCUI, fetch interactions for the first
+    // Fetch interactions for first RXCUI if available
     if (result.matches.length > 0) {
       const rxcui = result.matches[0].rxcui;
       try {
         const interactions = await fetchInteractions(rxcui);
         result.interactionsRaw = interactions || null;
 
-        // Parse interactions to a simpler structure if present
         if (interactions && interactions.interactionTypeGroup) {
           const parsed = [];
           interactions.interactionTypeGroup.forEach(typeGroup => {
@@ -83,7 +83,6 @@ app.get('/api/drug', async (req, res) => {
           result.interactions = parsed;
         }
       } catch (e) {
-        // don't fail entire request if interactions fail
         result.interactionsError = e.message;
       }
     }
@@ -95,7 +94,7 @@ app.get('/api/drug', async (req, res) => {
   }
 });
 
-// Fallback: serve index.html for SPA routing
+// Fallback for SPA routing
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });

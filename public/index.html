@@ -15,7 +15,54 @@
   </header>
 
   <main class="container">
-    <div class="search-panel">
+
+    <!-- Login Panel -->
+    <div id="loginPanel" class="card">
+      <h2>Login</h2>
+      <input id="username" placeholder="Username" />
+      <input id="password" type="password" placeholder="Password" />
+      <button id="loginBtn">Login</button>
+      <div id="loginError" class="small" style="color:red;"></div>
+      <p>Don't have an account? <a href="#" id="showSignup">Sign up</a></p>
+    </div>
+
+    <!-- Signup Panel -->
+    <div id="signupPanel" class="card" style="display:none;">
+      <h2>Sign Up</h2>
+      <input id="signupUsername" placeholder="Username" />
+      <input id="signupPassword" type="password" placeholder="Password" />
+      <input id="signupConfirm" type="password" placeholder="Confirm Password" />
+      <button id="signupBtn">Sign Up</button>
+      <div id="signupError" class="small" style="color:red;"></div>
+      <p>Already have an account? <a href="#" id="showLogin">Login</a></p>
+    </div>
+
+    <!-- Settings Button (only visible after login) -->
+    <div id="settingsButtonContainer" style="display:none; margin-bottom:20px;">
+      <button id="settingsBtn">⚙️ Settings</button>
+    </div>
+
+    <!-- Settings Panel -->
+    <div id="settingsPanel" class="card" style="display:none;">
+      <h2>Settings</h2>
+
+      <div style="margin-bottom:20px;">
+        <label for="newUsername">Change Username:</label>
+        <input id="newUsername" placeholder="New username" />
+        <button id="changeUsernameBtn">Update</button>
+        <div id="settingsError" class="small" style="color:red;"></div>
+        <div id="settingsSuccess" class="small" style="color:green;"></div>
+      </div>
+
+      <hr style="margin:20px 0;">
+
+      <button id="signoutBtn" style="background:#dc3545; color:white; padding:10px 20px; border:none;">
+        Sign Out
+      </button>
+    </div>
+
+    <!-- Search Panel -->
+    <div class="search-panel" style="display:none;">
       <div class="form-row">
         <input id="searchInput" placeholder="Enter drug name (e.g., ibuprofen)" />
         <button id="searchBtn">Search</button>
@@ -47,5 +94,20 @@
   </main>
   
   <script src="/script.js"></script>
+
+  <script>
+    // Toggle login/signup panels
+    document.getElementById('showSignup').addEventListener('click', e => {
+      e.preventDefault();
+      document.getElementById('loginPanel').style.display = 'none';
+      document.getElementById('signupPanel').style.display = 'block';
+    });
+
+    document.getElementById('showLogin').addEventListener('click', e => {
+      e.preventDefault();
+      document.getElementById('signupPanel').style.display = 'none';
+      document.getElementById('loginPanel').style.display = 'block';
+    });
+  </script>
 </body>
 </html>

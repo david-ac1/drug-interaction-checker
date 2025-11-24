@@ -495,23 +495,32 @@ document.getElementById("sortBy").onchange = renderResults;
    ENTER KEY SHORTCUTS
    ============================ */
 
-document.getElementById("searchInput").addEventListener("keypress", (e) => {
-  if (e.key === "Enter") {
-    document.getElementById("addDrugBtn").click();
-  }
-});
+const searchInputEl = document.getElementById("searchInput");
+if (searchInputEl) {
+  searchInputEl.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+      document.getElementById("addDrugBtn").click();
+    }
+  });
+}
 
-document.getElementById("username").addEventListener("keypress", (e) => {
-  if (e.key === "Enter") {
-    document.getElementById("loginBtn").click();
-  }
-});
+const usernameEl = document.getElementById("username");
+if (usernameEl) {
+  usernameEl.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+      document.getElementById("loginBtn").click();
+    }
+  });
+}
 
-document.getElementById("password").addEventListener("keypress", (e) => {
-  if (e.key === "Enter") {
-    document.getElementById("loginBtn").click();
-  }
-});
+const passwordEl = document.getElementById("password");
+if (passwordEl) {
+  passwordEl.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+      document.getElementById("loginBtn").click();
+    }
+  });
+}
 
 /* ============================
    AUTO LOGIN ON REFRESH

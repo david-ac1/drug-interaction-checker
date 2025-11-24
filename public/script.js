@@ -44,22 +44,30 @@ const appState = {
    ============================ */
 
 function showLoginPanel() {
+  document.body.classList.add("auth-screen");
   document.getElementById("loginPanel").classList.remove("hidden");
   document.getElementById("signupPanel").classList.add("hidden");
   document.getElementById("settingsPanel").classList.add("hidden");
+  document.getElementById("settingsBackdrop").classList.add("hidden");
   document.getElementById("settingsButtonContainer").classList.add("hidden");
   document.getElementById("searchPanel").classList.add("hidden");
+  document.getElementById("results").innerHTML = "";
 }
 
 function showSignupPanel() {
+  document.body.classList.add("auth-screen");
   document.getElementById("loginPanel").classList.add("hidden");
   document.getElementById("signupPanel").classList.remove("hidden");
+  document.getElementById("settingsPanel").classList.add("hidden");
+  document.getElementById("settingsBackdrop").classList.add("hidden");
 }
 
 function showSearchPanel() {
+  document.body.classList.remove("auth-screen");
   document.getElementById("loginPanel").classList.add("hidden");
   document.getElementById("signupPanel").classList.add("hidden");
   document.getElementById("settingsPanel").classList.add("hidden");
+  document.getElementById("settingsBackdrop").classList.add("hidden");
   document.getElementById("settingsButtonContainer").classList.remove("hidden");
   document.getElementById("searchPanel").classList.remove("hidden");
 }
@@ -139,6 +147,17 @@ document.getElementById("showLogin").onclick = (e) => {
 
 document.getElementById("settingsBtn").onclick = () => {
   document.getElementById("settingsPanel").classList.remove("hidden");
+  document.getElementById("settingsBackdrop").classList.remove("hidden");
+};
+
+document.getElementById("closeSettingsBtn").onclick = () => {
+  document.getElementById("settingsPanel").classList.add("hidden");
+  document.getElementById("settingsBackdrop").classList.add("hidden");
+};
+
+document.getElementById("settingsBackdrop").onclick = () => {
+  document.getElementById("settingsPanel").classList.add("hidden");
+  document.getElementById("settingsBackdrop").classList.add("hidden");
 };
 
 document.getElementById("signoutBtn").onclick = () => {

@@ -13,6 +13,22 @@ body {
   min-height: 100vh;
 }
 
+/* Auth vs app screen modes */
+.auth-screen main.container {
+  min-height: calc(100vh - 96px);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 60px;
+  padding-bottom: 60px;
+}
+
+.auth-screen #searchPanel,
+.auth-screen #settingsButtonContainer,
+.auth-screen #results {
+  display: none !important;
+}
+
 .hidden {
   display: none !important;
 }
@@ -70,6 +86,12 @@ main.container {
   padding: 40px;
   margin-bottom: 40px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+}
+
+#loginPanel,
+#signupPanel {
+  max-width: 460px;
+  width: 100%;
 }
 
 #loginPanel input, 
@@ -338,6 +360,24 @@ select:focus {
 .drug-item button {
   padding: 8px 16px;
   font-size: 14px;
+}
+
+/* Settings modal */
+#settingsPanel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  max-width: 480px;
+  width: 90%;
+  z-index: 901;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 900;
 }
 
 .empty-state { 

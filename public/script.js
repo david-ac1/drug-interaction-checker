@@ -1,318 +1,257 @@
-let currentData = null; 
-let currentPage = 1;
-const matchesPerPage = 10;
-let loggedIn = false;
-let currentUser = null;
+/* ============================
+   AUTH SYSTEM (LOCAL STORAGE)
+   ============================ */
 
-// ===========================
-// SIGNUP
-// ===========================
-document.getElementById('signupBtn').addEventListener('click', () => {
-  const username = document.getElementById('signupUsername').value.trim();
-  const password = document.getElementById('signupPassword').value.trim();
-  const confirm = document.getElementById('signupConfirm').value.trim();
-  const errorEl = document.getElementById('signupError');
+function saveUsers(users) {
+  localStorage.setItem("users", JSON.stringify(users));
+}
 
-  if (!username || !password || !confirm) {
-    errorEl.textContent = 'Please fill all fields.';
+function getUsers() {
+  return JSON.parse(localStorage.getItem("users")) || [];
+}
+
+function setLoggedInUser(username) {
+  localStorage.setItem("loggedInUser", username);
+}
+
+function getLoggedInUser() {
+  return localStorage.getItem("loggedInUser");
+}
+
+function logout() {
+  localStorage.removeItem("loggedInUser");
+  showLoginPanel();
+}
+
+/* ============================
+   UI PANEL MANAGEMENT
+   ============================ */
+
+function showLoginPanel() {
+  document.getElementById("loginPanel").style.display = "block";
+  document.getElementById("signupPanel").style.display = "none";
+  document.getElementById("settingsPanel").style.display = "none";
+  document.getElementById("settingsButtonContainer").style.display = "none";
+  document.getElementById("searchPanel").style.display = "none";
+  document.getElementById("results").innerHTML = "";
+}
+
+function showSignupPanel() {
+  document.getElementById("loginPanel").style.display = "none";
+  document.getElementById("signupPanel").style.display = "block";
+}
+
+function showSearchPanel() {
+  document.getElementById("loginPanel").style.display = "none";
+  document.getElementById("signupPanel").style.display = "none";
+  document.getElementById("settingsPanel").style.display = "none";
+  document.getElementById("settingsButtonContainer").style.display = "block";
+  document.getElementById("searchPanel").style.display = "block";
+}
+
+/* ============================
+   SIGN UP
+   ============================ */
+
+document.getElementById("signupBtn").onclick = () => {
+  const username = document.getElementById("signupUsername").value.trim();
+  const pw = document.getElementById("signupPassword").value;
+  const confirm = document.getElementById("signupConfirm").value;
+
+  const error = document.getElementById("signupError");
+
+  if (!username || !pw || !confirm) {
+    error.textContent = "All fields required";
     return;
   }
 
-  if (password !== confirm) {
-    errorEl.textContent = 'Passwords do not match.';
+  if (pw !== confirm) {
+    error.textContent = "Passwords do not match";
     return;
   }
 
-  const users = JSON.parse(localStorage.getItem('users') || '{}');
-
-  if (users[username]) {
-    errorEl.textContent = 'Username already exists.';
+  const users = getUsers();
+  if (users.find(u => u.username === username)) {
+    error.textContent = "Username already exists";
     return;
   }
 
-  users[username] = { password };
-  localStorage.setItem('users', JSON.stringify(users));
+  users.push({ username, password: pw });
+  saveUsers(users);
+  error.textContent = "";
+  alert("Account created! Please login.");
+  showLoginPanel();
+};
 
-  loggedIn = true;
-  currentUser = username;
+/* ============================
+   LOGIN
+   ============================ */
 
-  document.getElementById('signupPanel').style.display = 'none';
-  document.querySelector('.search-panel').style.display = 'block';
-  document.getElementById('settingsButtonContainer').style.display = 'block';
+document.getElementById("loginBtn").onclick = () => {
+  const username = document.getElementById("username").value.trim();
+  const pw = document.getElementById("password").value;
 
-  errorEl.textContent = '';
-});
+  const users = getUsers();
+  const found = users.find(u => u.username === username && u.password === pw);
 
-// ===========================
-// LOGIN
-// ===========================
-document.getElementById('loginBtn').addEventListener('click', () => {
-  const username = document.getElementById('username').value.trim();
-  const password = document.getElementById('password').value.trim();
-  const errorEl = document.getElementById('loginError');
-
-  if (!username || !password) {
-    errorEl.textContent = 'Please enter both username and password.';
+  if (!found) {
+    document.getElementById("loginError").textContent = "Invalid username or password";
     return;
   }
 
-  const users = JSON.parse(localStorage.getItem('users') || '{}');
+  setLoggedInUser(username);
+  showSearchPanel();
+};
 
-  if (users[username] && users[username].password === password) {
-    loggedIn = true;
-    currentUser = username;
+/* Switch between panels */
+document.getElementById("showSignup").onclick = (e) => {
+  e.preventDefault();
+  showSignupPanel();
+};
 
-    document.getElementById('loginPanel').style.display = 'none';
-    document.querySelector('.search-panel').style.display = 'block';
-    document.getElementById('settingsButtonContainer').style.display = 'block';
+document.getElementById("showLogin").onclick = (e) => {
+  e.preventDefault();
+  showLoginPanel();
+};
 
-    errorEl.textContent = '';
-  } else {
-    errorEl.textContent = 'Invalid credentials.';
-  }
-});
+/* ============================
+   SETTINGS
+   ============================ */
 
-// ===========================
-// SETTINGS SYSTEM
-// ===========================
-document.getElementById('settingsBtn').addEventListener('click', () => {
-  const panel = document.getElementById('settingsPanel');
-  panel.style.display = (panel.style.display === 'block' ? 'none' : 'block');
-});
+document.getElementById("settingsBtn").onclick = () => {
+  document.getElementById("settingsPanel").style.display = "block";
+};
 
-document.getElementById('changeUsernameBtn').addEventListener('click', () => {
-  const newUsername = document.getElementById('newUsername').value.trim();
-  const users = JSON.parse(localStorage.getItem('users') || '{}');
-  const errorEl = document.getElementById('settingsError');
-  const successEl = document.getElementById('settingsSuccess');
+document.getElementById("signoutBtn").onclick = () => {
+  logout();
+};
 
-  errorEl.textContent = '';
-  successEl.textContent = '';
+document.getElementById("changeUsernameBtn").onclick = () => {
+  const newName = document.getElementById("newUsername").value.trim();
+  const error = document.getElementById("settingsError");
+  const success = document.getElementById("settingsSuccess");
 
-  if (!newUsername) {
-    errorEl.textContent = 'New username cannot be empty.';
+  if (!newName) {
+    error.textContent = "Username cannot be empty";
     return;
   }
 
-  if (users[newUsername]) {
-    errorEl.textContent = 'A user with this username already exists.';
+  const users = getUsers();
+  const current = getLoggedInUser();
+
+  if (users.find(u => u.username === newName)) {
+    error.textContent = "Username already taken";
     return;
   }
 
-  users[newUsername] = users[currentUser];
-  delete users[currentUser];
+  // Update username
+  const user = users.find(u => u.username === current);
+  user.username = newName;
+  saveUsers(users);
 
-  localStorage.setItem('users', JSON.stringify(users));
-  currentUser = newUsername;
+  setLoggedInUser(newName);
 
-  successEl.textContent = 'Username updated successfully!';
-});
+  error.textContent = "";
+  success.textContent = "Username updated!";
+};
 
-document.getElementById('signoutBtn').addEventListener('click', () => {
-  loggedIn = false;
-  currentUser = null;
+/* ============================
+   DRUG SEARCH (RXNAV API)
+   ============================ */
 
-  document.querySelector('.search-panel').style.display = 'none';
-  document.getElementById('settingsPanel').style.display = 'none';
-  document.getElementById('settingsButtonContainer').style.display = 'none';
-
-  document.getElementById('loginPanel').style.display = 'block';
-  document.getElementById('results').innerHTML = '';
-});
-
-// ===========================
-// DRUG SEARCH (FRONTEND ONLY, WITH CORS PROXY)
-// ===========================
 async function searchDrug(name) {
-  if (!name) throw new Error("No drug name provided");
+  const formatted = name.toLowerCase();
 
-  // CORS proxy for RxNorm
-  const proxy = 'https://api.allorigins.win/get?url=';
-  const drugUrl = `https://rxnav.nlm.nih.gov/REST/drugs.json?name=${encodeURIComponent(name)}`;
+  // STEP 1 — Search for drug and get RXCUI
+  const rxcuiRes = await fetch(
+    `https://rxnav.nlm.nih.gov/REST/rxcui.json?name=${encodeURIComponent(formatted)}`
+  );
 
-  const res = await fetch(proxy + encodeURIComponent(drugUrl));
-  if (!res.ok) throw new Error(`Proxy returned ${res.status}`);
+  if (!rxcuiRes.ok) throw new Error("Drug not found (404)");
 
-  const wrapped = await res.json();
-  const data = JSON.parse(wrapped.contents);
+  const rxcuiData = await rxcuiRes.json();
+  if (!rxcuiData.idGroup.rxnormId) throw new Error("No matching drug");
 
-  const result = { query: name, matches: [] };
+  const rxcui = rxcuiData.idGroup.rxnormId[0];
 
-  if (data.drugGroup?.conceptGroup) {
-    data.drugGroup.conceptGroup.forEach(group => {
-      group.conceptProperties?.forEach(cp => {
-        result.matches.push({
-          name: cp.name,
-          rxcui: cp.rxcui,
-          tty: cp.tty,
-          language: cp.language
+  // STEP 2 — Get interactions
+  const interactRes = await fetch(
+    `https://rxnav.nlm.nih.gov/REST/interaction/interaction.json?rxcui=${rxcui}`
+  );
+
+  const interactData = await interactRes.json();
+  return interactData;
+}
+
+function renderResults(data) {
+  const container = document.getElementById("results");
+  container.innerHTML = "";
+
+  if (!data || !data.interactionTypeGroup) {
+    container.innerHTML = "<p>No interactions found.</p>";
+    return;
+  }
+
+  const list = [];
+
+  data.interactionTypeGroup.forEach(group => {
+    group.interactionType.forEach(type => {
+      type.interactionPair.forEach(pair => {
+        list.push({
+          desc: pair.description,
+          severity: pair.severity || "Moderate"
         });
       });
     });
-  }
-
-  // Fetch interactions for first match if available
-  if (result.matches.length > 0) {
-    const rxcui = result.matches[0].rxcui;
-    try {
-      const interUrl = `https://rxnav.nlm.nih.gov/REST/interaction/interaction.json?rxcui=${rxcui}`;
-      const interRes = await fetch(proxy + encodeURIComponent(interUrl));
-      if (interRes.ok) {
-        const interWrapped = await interRes.json();
-        const interData = JSON.parse(interWrapped.contents);
-
-        result.interactions = [];
-        interData.interactionTypeGroup?.forEach(typeGroup => {
-          typeGroup.interactionType?.forEach(it => {
-            it.interactionPair?.forEach(pair => {
-              result.interactions.push({
-                description: pair.description || 'No description',
-                severity: pair.severity || 'unknown',
-                interactions: pair.interactionConcept?.map(ic => ({
-                  name: ic.minConceptItem.name,
-                  rxcui: ic.minConceptItem.rxcui
-                }))
-              });
-            });
-          });
-        });
-      }
-    } catch(e) {
-      result.interactionsError = e.message;
-    }
-  }
-
-  return result;
-}
-
-// ===========================
-// RENDER RESULTS (UNCHANGED)
-// ===========================
-function renderResults(data) {
-  const out = document.getElementById('results');
-  out.innerHTML = '';
-
-  if (!data.matches || data.matches.length === 0) {
-    out.innerHTML = `<div class="card">No matches found for <strong>${data.query}</strong></div>`;
-    return;
-  }
-
-  const severityFilter = document.getElementById('filterSeverity').value;
-  const sortBy = document.getElementById('sortBy').value;
-
-  let matches = [...data.matches];
-  if (sortBy === 'alpha') matches.sort((a,b)=>a.name.localeCompare(b.name));
-
-  const totalPages = Math.ceil(matches.length / matchesPerPage);
-  const startIndex = (currentPage - 1) * matchesPerPage;
-  const endIndex = startIndex + matchesPerPage;
-  const pagedMatches = matches.slice(startIndex, endIndex);
-
-  const matchesEl = document.createElement('div');
-  matchesEl.className = 'card';
-  matchesEl.innerHTML = `<strong>Matches for "${data.query}"</strong>
-    <div class="small">Showing ${startIndex + 1}–${Math.min(endIndex, matches.length)} of ${matches.length} match(es)</div>`;
-
-  const list = document.createElement('ul');
-  pagedMatches.forEach(m => {
-    const li = document.createElement('li');
-    li.textContent = `${m.name} (rxcui: ${m.rxcui || '—'})`;
-    list.appendChild(li);
   });
-  matchesEl.appendChild(list);
 
-  if (totalPages > 1) {
-    const pagination = document.createElement('div');
-    pagination.className = 'pagination';
-
-    if (currentPage > 1) {
-      const prevBtn = document.createElement('button');
-      prevBtn.textContent = 'Previous';
-      prevBtn.addEventListener('click', () => { currentPage--; renderResults(currentData); });
-      pagination.appendChild(prevBtn);
-    }
-
-    if (currentPage < totalPages) {
-      const nextBtn = document.createElement('button');
-      nextBtn.textContent = 'Next';
-      nextBtn.addEventListener('click', () => { currentPage++; renderResults(currentData); });
-      pagination.appendChild(nextBtn);
-    }
-
-    matchesEl.appendChild(pagination);
-  }
-
-  out.appendChild(matchesEl);
-
-  let interactions = [...(data.interactions || [])];
-  if (severityFilter !== 'all') {
-    interactions = interactions.filter(it => it.severity.toLowerCase() === severityFilter.toLowerCase());
-  }
-
-  if (sortBy === 'severity') {
-    const severityOrder = { High:1, Moderate:2, Low:3, unknown:4 };
-    interactions.sort((a,b)=>(severityOrder[a.severity]||4)-(severityOrder[b.severity]||4));
-  }
-
-  const interEl = document.createElement('div');
-  interEl.className = 'card';
-  interEl.innerHTML = `<strong>Interactions</strong>`;
-
-  if (data.interactionsError) {
-    interEl.innerHTML += `<div class="small">Could not fetch interactions: ${data.interactionsError}</div>`;
-    out.appendChild(interEl);
+  if (list.length === 0) {
+    container.innerHTML = "<p>No interaction data available.</p>";
     return;
   }
 
-  if (!interactions || interactions.length === 0) {
-    interEl.innerHTML += `<div class="small">No interaction data available for the main match.</div>`;
-    out.appendChild(interEl);
-    return;
-  }
-
-  const ul = document.createElement('ul');
-  interactions.forEach(it => {
-    const li = document.createElement('li');
-    li.innerHTML = `<span class="badge">${it.severity}</span> ${it.description || 'No description'} 
-      <div class="small">Related: ${it.interactions.map(i=>i.name).join(', ')}</div>`;
-    ul.appendChild(li);
+  let html = "";
+  list.forEach(item => {
+    html += `
+      <div class="card result-card">
+         <h3>${item.severity}</h3>
+         <p>${item.desc}</p>
+      </div>
+    `;
   });
-  interEl.appendChild(ul);
-  out.appendChild(interEl);
+
+  container.innerHTML = html;
 }
 
-function updateResultsView() {
-  currentPage = 1;
-  if (currentData) renderResults(currentData);
-}
+/* ============================
+   SEARCH BUTTON
+   ============================ */
 
-function showError(msg) {
-  const out = document.getElementById('results');
-  out.innerHTML = `<div class="card">Error: ${msg}</div>`;
-}
+document.getElementById("searchBtn").onclick = async () => {
+  const searchInput = document.getElementById("searchInput").value.trim();
+  const resultsBox = document.getElementById("results");
 
-// ===========================
-// SEARCH HANDLER
-// ===========================
-document.getElementById('searchBtn').addEventListener('click', async () => {
-  if (!loggedIn) return showError('Please login first.');
-  const q = document.getElementById('searchInput').value.trim();
-  if (!q) return showError('Please enter a drug name.');
+  if (!searchInput) {
+    resultsBox.innerHTML = "<p>Please enter a drug name.</p>";
+    return;
+  }
+
+  resultsBox.innerHTML = "<p>Searching…</p>";
 
   try {
-    document.getElementById('results').innerHTML = '<div class="card">Loading…</div>';
-    currentData = await searchDrug(q);
-    currentPage = 1;
-    renderResults(currentData);
+    const data = await searchDrug(searchInput);
+    renderResults(data);
   } catch (e) {
-    console.error(e);
-    showError(e.message);
+    resultsBox.innerHTML = `<p class="error">${e.message}</p>`;
   }
-});
+};
 
-document.getElementById('searchInput').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') document.getElementById('searchBtn').click();
-});
+/* ============================
+   AUTO LOGIN ON REFRESH
+   ============================ */
 
-document.getElementById('filterSeverity').addEventListener('change', updateResultsView);
-document.getElementById('sortBy').addEventListener('change', updateResultsView);
+window.onload = () => {
+  if (getLoggedInUser()) {
+    showSearchPanel();
+  }
+};

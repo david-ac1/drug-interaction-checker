@@ -2,7 +2,7 @@ let currentData = null;
 let currentPage = 1;
 const matchesPerPage = 10;
 let loggedIn = false;
-let currentUser = null; // NEW
+let currentUser = null;
 
 // ===========================
 // SIGNUP
@@ -75,14 +75,11 @@ document.getElementById('loginBtn').addEventListener('click', () => {
 // ===========================
 // SETTINGS SYSTEM
 // ===========================
-
-// Open/close settings panel
 document.getElementById('settingsBtn').addEventListener('click', () => {
   const panel = document.getElementById('settingsPanel');
   panel.style.display = (panel.style.display === 'block' ? 'none' : 'block');
 });
 
-// Change username
 document.getElementById('changeUsernameBtn').addEventListener('click', () => {
   const newUsername = document.getElementById('newUsername').value.trim();
   const users = JSON.parse(localStorage.getItem('users') || '{}');
@@ -102,7 +99,6 @@ document.getElementById('changeUsernameBtn').addEventListener('click', () => {
     return;
   }
 
-  // Move account to new username
   users[newUsername] = users[currentUser];
   delete users[currentUser];
 
@@ -112,7 +108,6 @@ document.getElementById('changeUsernameBtn').addEventListener('click', () => {
   successEl.textContent = 'Username updated successfully!';
 });
 
-// Sign out
 document.getElementById('signoutBtn').addEventListener('click', () => {
   loggedIn = false;
   currentUser = null;
@@ -125,18 +120,73 @@ document.getElementById('signoutBtn').addEventListener('click', () => {
   document.getElementById('results').innerHTML = '';
 });
 
-
 // ===========================
-// DRUG SEARCH API
+// DRUG SEARCH (FRONTEND ONLY, WITH CORS PROXY)
 // ===========================
 async function searchDrug(name) {
-  const res = await fetch(`/api/drug?name=${encodeURIComponent(name)}`);
-  if (!res.ok) throw new Error(`Server returned ${res.status}`);
-  return res.json();
+  if (!name) throw new Error("No drug name provided");
+
+  // CORS proxy for RxNorm
+  const proxy = 'https://api.allorigins.win/get?url=';
+  const drugUrl = `https://rxnav.nlm.nih.gov/REST/drugs.json?name=${encodeURIComponent(name)}`;
+
+  const res = await fetch(proxy + encodeURIComponent(drugUrl));
+  if (!res.ok) throw new Error(`Proxy returned ${res.status}`);
+
+  const wrapped = await res.json();
+  const data = JSON.parse(wrapped.contents);
+
+  const result = { query: name, matches: [] };
+
+  if (data.drugGroup?.conceptGroup) {
+    data.drugGroup.conceptGroup.forEach(group => {
+      group.conceptProperties?.forEach(cp => {
+        result.matches.push({
+          name: cp.name,
+          rxcui: cp.rxcui,
+          tty: cp.tty,
+          language: cp.language
+        });
+      });
+    });
+  }
+
+  // Fetch interactions for first match if available
+  if (result.matches.length > 0) {
+    const rxcui = result.matches[0].rxcui;
+    try {
+      const interUrl = `https://rxnav.nlm.nih.gov/REST/interaction/interaction.json?rxcui=${rxcui}`;
+      const interRes = await fetch(proxy + encodeURIComponent(interUrl));
+      if (interRes.ok) {
+        const interWrapped = await interRes.json();
+        const interData = JSON.parse(interWrapped.contents);
+
+        result.interactions = [];
+        interData.interactionTypeGroup?.forEach(typeGroup => {
+          typeGroup.interactionType?.forEach(it => {
+            it.interactionPair?.forEach(pair => {
+              result.interactions.push({
+                description: pair.description || 'No description',
+                severity: pair.severity || 'unknown',
+                interactions: pair.interactionConcept?.map(ic => ({
+                  name: ic.minConceptItem.name,
+                  rxcui: ic.minConceptItem.rxcui
+                }))
+              });
+            });
+          });
+        });
+      }
+    } catch(e) {
+      result.interactionsError = e.message;
+    }
+  }
+
+  return result;
 }
 
 // ===========================
-// RENDER RESULTS
+// RENDER RESULTS (UNCHANGED)
 // ===========================
 function renderResults(data) {
   const out = document.getElementById('results');
@@ -171,7 +221,6 @@ function renderResults(data) {
   });
   matchesEl.appendChild(list);
 
-  // Pagination
   if (totalPages > 1) {
     const pagination = document.createElement('div');
     pagination.className = 'pagination';
@@ -195,7 +244,6 @@ function renderResults(data) {
 
   out.appendChild(matchesEl);
 
-  // Interactions
   let interactions = [...(data.interactions || [])];
   if (severityFilter !== 'all') {
     interactions = interactions.filter(it => it.severity.toLowerCase() === severityFilter.toLowerCase());
@@ -262,11 +310,9 @@ document.getElementById('searchBtn').addEventListener('click', async () => {
   }
 });
 
-// Enter key
 document.getElementById('searchInput').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') document.getElementById('searchBtn').click();
 });
 
-// Filters
 document.getElementById('filterSeverity').addEventListener('change', updateResultsView);
 document.getElementById('sortBy').addEventListener('change', updateResultsView);

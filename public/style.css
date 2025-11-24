@@ -13,6 +13,19 @@ body {
   min-height: 100vh;
 }
 
+.hidden {
+  display: none !important;
+}
+
+.link-primary {
+  color: #0056b3;
+  text-decoration: none;
+}
+
+.link-primary:hover {
+  text-decoration: underline;
+}
+
 .container {
   max-width: 1200px;
   margin: 0 auto;
@@ -50,7 +63,7 @@ main.container {
 }
 
 /* --- Panels (Login, Signup, Search) --- */
-#loginPanel, #signupPanel, .search-panel, #settingsPanel {
+#loginPanel, #signupPanel, .search-panel, #settingsPanel, .panel-card {
   background: #fff;
   border: 1px solid #dee2e6;
   border-radius: 2px;
@@ -193,7 +206,7 @@ select:focus {
 }
 
 /* Result Cards */
-.card {
+.result-card {
   background: #fff;
   border-left: 4px solid #dee2e6;
   padding: 28px 32px;
@@ -202,14 +215,14 @@ select:focus {
   transition: all 0.2s;
 }
 
-.card:hover {
+.result-card:hover {
   box-shadow: 0 4px 12px rgba(0,0,0,0.08);
   transform: translateX(4px);
 }
 
-.card.severity-high { border-left-color: #dc3545; }
-.card.severity-moderate { border-left-color: #ffc107; }
-.card.severity-low { border-left-color: #28a745; }
+.result-card.severity-high { border-left-color: #dc3545; }
+.result-card.severity-moderate { border-left-color: #ffc107; }
+.result-card.severity-low { border-left-color: #28a745; }
 
 .card-header { 
   display: flex; 
@@ -250,6 +263,81 @@ select:focus {
   color: #6c757d; 
   margin-top: 12px; 
   display: block; 
+}
+
+.error {
+  color: #dc3545;
+}
+
+.success {
+  color: #28a745;
+}
+
+.info {
+  color: #0056b3;
+}
+
+.subheading {
+  font-size: 18px;
+  margin-bottom: 12px;
+}
+
+.button-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.secondary-btn {
+  padding: 16px 32px;
+  background: #6c757d;
+  color: #fff;
+  border: none;
+  border-radius: 2px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.secondary-btn:hover {
+  background: #5a6268;
+}
+
+.danger-btn {
+  padding: 12px 24px;
+  background: #dc3545;
+  color: #fff;
+  border: none;
+  border-radius: 2px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.danger-btn:hover {
+  background: #b22a37;
+}
+
+.drug-list {
+  margin: 20px 0;
+}
+
+.drug-item {
+  background: #f8f9fa;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  border-radius: 2px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.drug-item button {
+  padding: 8px 16px;
+  font-size: 14px;
 }
 
 .empty-state { 
@@ -304,6 +392,10 @@ select:focus {
   }
 
   .settings-actions {
+    flex-direction: column;
+  }
+
+  .button-row {
     flex-direction: column;
   }
 }

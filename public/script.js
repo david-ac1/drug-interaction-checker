@@ -20,33 +20,48 @@ function getLoggedInUser() {
 
 function logout() {
   localStorage.removeItem("loggedInUser");
+  appState.selectedDrugs = [];
+  appState.drugData = {};
+  appState.allInteractions = [];
+  renderDrugList();
+  document.getElementById("results").innerHTML = "";
+  document.getElementById("filtersContainer").classList.add("hidden");
   showLoginPanel();
 }
+
+/* ============================
+   APP STATE (IN-MEMORY, PER TAB)
+   ============================ */
+
+const appState = {
+  selectedDrugs: [], // array of keys (lowercased names)
+  drugData: {}, // key -> { label, displayName, interactions }
+  allInteractions: [] // flattened interaction list with drugName
+};
 
 /* ============================
    UI PANEL MANAGEMENT
    ============================ */
 
 function showLoginPanel() {
-  document.getElementById("loginPanel").style.display = "block";
-  document.getElementById("signupPanel").style.display = "none";
-  document.getElementById("settingsPanel").style.display = "none";
-  document.getElementById("settingsButtonContainer").style.display = "none";
-  document.getElementById("searchPanel").style.display = "none";
-  document.getElementById("results").innerHTML = "";
+  document.getElementById("loginPanel").classList.remove("hidden");
+  document.getElementById("signupPanel").classList.add("hidden");
+  document.getElementById("settingsPanel").classList.add("hidden");
+  document.getElementById("settingsButtonContainer").classList.add("hidden");
+  document.getElementById("searchPanel").classList.add("hidden");
 }
 
 function showSignupPanel() {
-  document.getElementById("loginPanel").style.display = "none";
-  document.getElementById("signupPanel").style.display = "block";
+  document.getElementById("loginPanel").classList.add("hidden");
+  document.getElementById("signupPanel").classList.remove("hidden");
 }
 
 function showSearchPanel() {
-  document.getElementById("loginPanel").style.display = "none";
-  document.getElementById("signupPanel").style.display = "none";
-  document.getElementById("settingsPanel").style.display = "none";
-  document.getElementById("settingsButtonContainer").style.display = "block";
-  document.getElementById("searchPanel").style.display = "block";
+  document.getElementById("loginPanel").classList.add("hidden");
+  document.getElementById("signupPanel").classList.add("hidden");
+  document.getElementById("settingsPanel").classList.add("hidden");
+  document.getElementById("settingsButtonContainer").classList.remove("hidden");
+  document.getElementById("searchPanel").classList.remove("hidden");
 }
 
 /* ============================
@@ -57,8 +72,9 @@ document.getElementById("signupBtn").onclick = () => {
   const username = document.getElementById("signupUsername").value.trim();
   const pw = document.getElementById("signupPassword").value;
   const confirm = document.getElementById("signupConfirm").value;
-
   const error = document.getElementById("signupError");
+
+  error.textContent = "";
 
   if (!username || !pw || !confirm) {
     error.textContent = "All fields required";
@@ -78,8 +94,11 @@ document.getElementById("signupBtn").onclick = () => {
 
   users.push({ username, password: pw });
   saveUsers(users);
-  error.textContent = "";
   alert("Account created! Please login.");
+
+  document.getElementById("signupUsername").value = "";
+  document.getElementById("signupPassword").value = "";
+  document.getElementById("signupConfirm").value = "";
   showLoginPanel();
 };
 
@@ -90,7 +109,6 @@ document.getElementById("signupBtn").onclick = () => {
 document.getElementById("loginBtn").onclick = () => {
   const username = document.getElementById("username").value.trim();
   const pw = document.getElementById("password").value;
-
   const users = getUsers();
   const found = users.find(u => u.username === username && u.password === pw);
 
@@ -99,11 +117,12 @@ document.getElementById("loginBtn").onclick = () => {
     return;
   }
 
+  document.getElementById("loginError").textContent = "";
   setLoggedInUser(username);
   showSearchPanel();
 };
 
-/* Switch between panels */
+// panel toggles
 document.getElementById("showSignup").onclick = (e) => {
   e.preventDefault();
   showSignupPanel();
@@ -119,7 +138,7 @@ document.getElementById("showLogin").onclick = (e) => {
    ============================ */
 
 document.getElementById("settingsBtn").onclick = () => {
-  document.getElementById("settingsPanel").style.display = "block";
+  document.getElementById("settingsPanel").classList.remove("hidden");
 };
 
 document.getElementById("signoutBtn").onclick = () => {
@@ -130,6 +149,9 @@ document.getElementById("changeUsernameBtn").onclick = () => {
   const newName = document.getElementById("newUsername").value.trim();
   const error = document.getElementById("settingsError");
   const success = document.getElementById("settingsSuccess");
+
+  error.textContent = "";
+  success.textContent = "";
 
   if (!newName) {
     error.textContent = "Username cannot be empty";
@@ -144,78 +166,213 @@ document.getElementById("changeUsernameBtn").onclick = () => {
     return;
   }
 
-  // Update username
   const user = users.find(u => u.username === current);
-  user.username = newName;
-  saveUsers(users);
-
-  setLoggedInUser(newName);
-
-  error.textContent = "";
-  success.textContent = "Username updated!";
-};
-
-/* ============================
-   DRUG SEARCH (RXNAV API)
-   ============================ */
-
-async function searchDrug(name) {
-  const formatted = name.toLowerCase();
-
-  // STEP 1 — Search for drug and get RXCUI
-  const rxcuiRes = await fetch(
-    `https://rxnav.nlm.nih.gov/REST/rxcui.json?name=${encodeURIComponent(formatted)}`
-  );
-
-  if (!rxcuiRes.ok) throw new Error("Drug not found (404)");
-
-  const rxcuiData = await rxcuiRes.json();
-  if (!rxcuiData.idGroup.rxnormId) throw new Error("No matching drug");
-
-  const rxcui = rxcuiData.idGroup.rxnormId[0];
-
-  // STEP 2 — Get interactions
-  const interactRes = await fetch(
-    `https://rxnav.nlm.nih.gov/REST/interaction/interaction.json?rxcui=${rxcui}`
-  );
-
-  const interactData = await interactRes.json();
-  return interactData;
-}
-
-function renderResults(data) {
-  const container = document.getElementById("results");
-  container.innerHTML = "";
-
-  if (!data || !data.interactionTypeGroup) {
-    container.innerHTML = "<p>No interactions found.</p>";
+  if (!user) {
+    error.textContent = "Current user not found";
     return;
   }
 
-  const list = [];
+  user.username = newName;
+  saveUsers(users);
+  setLoggedInUser(newName);
 
-  data.interactionTypeGroup.forEach(group => {
-    group.interactionType.forEach(type => {
-      type.interactionPair.forEach(pair => {
-        list.push({
-          desc: pair.description,
-          severity: pair.severity || "Moderate"
-        });
+  success.textContent = "Username updated!";
+  document.getElementById("newUsername").value = "";
+};
+
+/* ============================
+   DRUG SEARCH USING openFDA
+   ============================ */
+
+async function searchDrugInFDA(drugName) {
+  const formatted = encodeURIComponent(drugName.trim());
+
+  // More forgiving query: look in brand OR generic name and allow partial match
+  const url = `https://api.fda.gov/drug/label.json?search=(openfda.generic_name:%22${formatted}%22+OR+openfda.brand_name:%22${formatted}%22+OR+openfda.substance_name:%22${formatted}%22)&limit=1`;
+
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error("Drug not found");
+  }
+
+  const data = await response.json();
+  if (!data.results || data.results.length === 0) {
+    throw new Error("No drug information found");
+  }
+
+  return data.results[0];
+}
+
+function getDrugDisplayName(drugLabel, fallbackName) {
+  if (drugLabel.openfda) {
+    if (drugLabel.openfda.brand_name && drugLabel.openfda.brand_name.length) {
+      return drugLabel.openfda.brand_name[0];
+    }
+    if (drugLabel.openfda.generic_name && drugLabel.openfda.generic_name.length) {
+      return drugLabel.openfda.generic_name[0];
+    }
+  }
+  return fallbackName || "Unknown drug";
+}
+
+function determineSeverity(text) {
+  const lower = text.toLowerCase();
+  if (
+    lower.includes("contraindicated") ||
+    lower.includes("severe") ||
+    lower.includes("serious") ||
+    lower.includes("fatal") ||
+    lower.includes("death") ||
+    lower.includes("life-threatening")
+  ) {
+    return "high";
+  }
+  if (
+    lower.includes("caution") ||
+    lower.includes("monitor") ||
+    lower.includes("moderate") ||
+    lower.includes("risk")
+  ) {
+    return "moderate";
+  }
+  return "low";
+}
+
+function extractInteractions(drugLabel) {
+  const interactions = [];
+
+  if (Array.isArray(drugLabel.drug_interactions)) {
+    drugLabel.drug_interactions.forEach(text => {
+      interactions.push({
+        type: "drug-drug",
+        description: text,
+        severity: determineSeverity(text)
       });
     });
+  }
+
+  if (Array.isArray(drugLabel.warnings)) {
+    drugLabel.warnings.forEach(text => {
+      if (text.toLowerCase().includes("interaction")) {
+        interactions.push({
+          type: "warning",
+          description: text,
+          severity: "high"
+        });
+      }
+    });
+  }
+
+  if (Array.isArray(drugLabel.contraindications)) {
+    drugLabel.contraindications.forEach(text => {
+      interactions.push({
+        type: "contraindication",
+        description: text,
+        severity: "high"
+      });
+    });
+  }
+
+  return interactions;
+}
+
+/* ============================
+   DRUG LIST MANAGEMENT
+   ============================ */
+
+function renderDrugList() {
+  const container = document.getElementById("drugList");
+  const wrapper = document.getElementById("drugListContainer");
+
+  if (!container || !wrapper) return;
+
+  container.innerHTML = "";
+
+  appState.selectedDrugs.forEach((key, index) => {
+    const info = appState.drugData[key];
+    const name = info ? info.displayName : key;
+
+    const div = document.createElement("div");
+    div.className = "drug-item";
+    div.innerHTML = `
+      <span><strong>${name}</strong></span>
+      <button type="button" data-index="${index}">Remove</button>
+    `;
+    container.appendChild(div);
   });
 
-  if (list.length === 0) {
-    container.innerHTML = "<p>No interaction data available.</p>";
+  if (appState.selectedDrugs.length > 0) {
+    wrapper.classList.remove("hidden");
+  } else {
+    wrapper.classList.add("hidden");
+  }
+
+  // wire remove buttons
+  container.querySelectorAll("button[data-index]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const idx = parseInt(btn.getAttribute("data-index"), 10);
+      if (!Number.isNaN(idx)) {
+        const key = appState.selectedDrugs[idx];
+        appState.selectedDrugs.splice(idx, 1);
+        if (key && appState.drugData[key]) {
+          delete appState.drugData[key];
+        }
+        renderDrugList();
+      }
+    });
+  });
+}
+
+/* ============================
+   INTERACTION RENDERING
+   ============================ */
+
+function renderResults() {
+  const container = document.getElementById("results");
+  const severityFilter = document.getElementById("filterSeverity").value;
+  const sortBy = document.getElementById("sortBy").value;
+
+  let items = [...appState.allInteractions];
+
+  if (severityFilter !== "all") {
+    items = items.filter(i => i.severity === severityFilter);
+  }
+
+  if (sortBy === "severity") {
+    const order = { high: 0, moderate: 1, low: 2 };
+    items.sort((a, b) => order[a.severity] - order[b.severity]);
+  } else if (sortBy === "name") {
+    items.sort((a, b) => a.drugName.localeCompare(b.drugName));
+  }
+
+  if (items.length === 0) {
+    container.innerHTML = `
+      <div class="panel-card empty-state">
+        <div class="empty-icon">💊</div>
+        <div class="empty-text">No interactions found${
+          severityFilter !== "all" ? " for the selected severity level" : ""
+        }.</div>
+      </div>
+    `;
     return;
   }
 
   let html = "";
-  list.forEach(item => {
+  items.forEach(interaction => {
+    const truncated =
+      interaction.description && interaction.description.length > 350
+        ? interaction.description.slice(0, 350) + "..."
+        : interaction.description;
+
     html += `
-      <div class="card result-card">
-         <h3>${item.severity}</h3>
-         <p>${item.desc}</p>
+      <div class="result-card severity-${interaction.severity}">
+        <div>
+          <span class="badge severity-${interaction.severity}">${
+            interaction.severity.toUpperCase()
+          }</span>
+          <strong>${interaction.drugName}</strong> - ${interaction.type}
+        </div>
+        <p style="margin-top: 12px; color: #495057;">${truncated}</p>
       </div>
     `;
   });
@@ -224,34 +381,127 @@ function renderResults(data) {
 }
 
 /* ============================
-   SEARCH BUTTON
+   EVENT HANDLERS FOR DRUG WORKFLOW
    ============================ */
 
-document.getElementById("searchBtn").onclick = async () => {
-  const searchInput = document.getElementById("searchInput").value.trim();
-  const resultsBox = document.getElementById("results");
+document.getElementById("addDrugBtn").onclick = async () => {
+  const input = document.getElementById("searchInput");
+  const msgEl = document.getElementById("searchMessage");
+  const rawName = input.value.trim();
 
-  if (!searchInput) {
-    resultsBox.innerHTML = "<p>Please enter a drug name.</p>";
+  msgEl.textContent = "";
+  msgEl.className = "info";
+
+  if (!rawName) {
+    msgEl.textContent = "Please enter a drug name";
+    msgEl.className = "error";
     return;
   }
 
-  resultsBox.innerHTML = "<p>Searching…</p>";
+  const key = rawName.toLowerCase();
+
+  if (appState.selectedDrugs.includes(key)) {
+    msgEl.textContent = "Drug already added";
+    msgEl.className = "error";
+    return;
+  }
+
+  msgEl.textContent = "Searching FDA database...";
 
   try {
-    const data = await searchDrug(searchInput);
-    renderResults(data);
-  } catch (e) {
-    resultsBox.innerHTML = `<p class="error">${e.message}</p>`;
+    const label = await searchDrugInFDA(rawName);
+    const displayName = getDrugDisplayName(label, rawName);
+    const interactions = extractInteractions(label);
+
+    appState.selectedDrugs.push(key);
+    appState.drugData[key] = {
+      label,
+      displayName,
+      interactions
+    };
+
+    input.value = "";
+    msgEl.textContent = `Added ${displayName} successfully!`;
+    msgEl.className = "success";
+
+    renderDrugList();
+
+    setTimeout(() => {
+      msgEl.textContent = "";
+    }, 3000);
+  } catch (err) {
+    msgEl.textContent = `Error: ${err.message}. Try another drug name.`;
+    msgEl.className = "error";
   }
 };
+
+document.getElementById("clearAllBtn").onclick = () => {
+  appState.selectedDrugs = [];
+  appState.drugData = {};
+  appState.allInteractions = [];
+  renderDrugList();
+  document.getElementById("results").innerHTML = "";
+  document.getElementById("filtersContainer").classList.add("hidden");
+};
+
+document.getElementById("checkInteractionsBtn").onclick = () => {
+  if (appState.selectedDrugs.length < 2) {
+    alert("Please add at least 2 drugs to check interactions");
+    return;
+  }
+
+  appState.allInteractions = [];
+
+  appState.selectedDrugs.forEach(key => {
+    const info = appState.drugData[key];
+    if (!info || !Array.isArray(info.interactions)) return;
+
+    info.interactions.forEach(interaction => {
+      appState.allInteractions.push({
+        ...interaction,
+        drugName: info.displayName
+      });
+    });
+  });
+
+  document.getElementById("filtersContainer").classList.remove("hidden");
+  renderResults();
+};
+
+// filters
+document.getElementById("filterSeverity").onchange = renderResults;
+document.getElementById("sortBy").onchange = renderResults;
+
+/* ============================
+   ENTER KEY SHORTCUTS
+   ============================ */
+
+document.getElementById("searchInput").addEventListener("keypress", (e) => {
+  if (e.key === "Enter") {
+    document.getElementById("addDrugBtn").click();
+  }
+});
+
+document.getElementById("username").addEventListener("keypress", (e) => {
+  if (e.key === "Enter") {
+    document.getElementById("loginBtn").click();
+  }
+});
+
+document.getElementById("password").addEventListener("keypress", (e) => {
+  if (e.key === "Enter") {
+    document.getElementById("loginBtn").click();
+  }
+});
 
 /* ============================
    AUTO LOGIN ON REFRESH
    ============================ */
 
-window.onload = () => {
+window.addEventListener("load", () => {
   if (getLoggedInUser()) {
     showSearchPanel();
+  } else {
+    showLoginPanel();
   }
-};
+});

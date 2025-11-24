@@ -10,47 +10,44 @@
   <header>
     <div class="container">
       <h1>Drug Interaction Checker</h1>
-      <p class="lead">Search for a drug to see basic info and known interactions (powered by RxNorm)</p>
+      <p class="lead">Add multiple drugs to check for potential interactions using FDA drug label data</p>
     </div>
   </header>
 
   <main class="container">
 
     <!-- LOGIN PANEL -->
-    <div id="loginPanel" class="card">
+    <div id="loginPanel" class="panel-card">
       <h2>Login</h2>
-      <input id="username" placeholder="Username" />
-      <input id="password" type="password" placeholder="Password" />
+      <input id="username" placeholder="Username" autocomplete="username" />
+      <input id="password" type="password" placeholder="Password" autocomplete="current-password" />
       <button id="loginBtn">Login</button>
       <div id="loginError" class="small error"></div>
-
-      <p>Don't have an account? 
-        <a href="#" id="showSignup">Sign up</a>
+      <p style="margin-top: 16px;">Don't have an account?
+        <a href="#" id="showSignup" class="link-primary">Sign up</a>
       </p>
     </div>
 
     <!-- SIGNUP PANEL -->
-    <div id="signupPanel" class="card" style="display:none;">
+    <div id="signupPanel" class="panel-card hidden">
       <h2>Sign Up</h2>
-      <input id="signupUsername" placeholder="Username" />
-      <input id="signupPassword" type="password" placeholder="Password" />
-      <input id="signupConfirm" type="password" placeholder="Confirm Password" />
-
+      <input id="signupUsername" placeholder="Username" autocomplete="username" />
+      <input id="signupPassword" type="password" placeholder="Password" autocomplete="new-password" />
+      <input id="signupConfirm" type="password" placeholder="Confirm Password" autocomplete="new-password" />
       <button id="signupBtn">Sign Up</button>
       <div id="signupError" class="small error"></div>
-
-      <p>Already have an account? 
-        <a href="#" id="showLogin">Login</a>
+      <p style="margin-top: 16px;">Already have an account?
+        <a href="#" id="showLogin" class="link-primary">Login</a>
       </p>
     </div>
 
     <!-- SETTINGS BUTTON (AFTER LOGIN) -->
-    <div id="settingsButtonContainer" style="display:none; margin-bottom:20px;">
+    <div id="settingsButtonContainer" class="hidden settings-actions" style="margin-bottom:20px;">
       <button id="settingsBtn">⚙️ Settings</button>
     </div>
 
     <!-- SETTINGS PANEL -->
-    <div id="settingsPanel" class="card" style="display:none;">
+    <div id="settingsPanel" class="panel-card hidden">
       <h2>Settings</h2>
 
       <div class="setting-block">
@@ -63,40 +60,47 @@
 
       <hr>
 
-      <button id="signoutBtn" class="danger-btn">
-        Sign Out
-      </button>
+      <button id="signoutBtn" class="danger-btn">Sign Out</button>
     </div>
 
     <!-- SEARCH PANEL (ONLY AFTER LOGIN) -->
-    <div id="searchPanel" class="search-panel" style="display:none;">
+    <div id="searchPanel" class="search-panel hidden">
+      <h2>Add Drugs</h2>
 
       <div class="form-row">
-        <input id="searchInput" placeholder="Enter drug name (e.g., ibuprofen)" />
-        <button id="searchBtn">Search</button>
+        <input id="searchInput" placeholder="Enter drug name (e.g., aspirin, warfarin)" />
+        <button id="addDrugBtn">Add Drug</button>
       </div>
 
-      <div class="controls-row">
+      <div id="searchMessage" class="info"></div>
 
+      <div id="drugListContainer" class="hidden">
+        <h3 class="subheading">Selected Drugs:</h3>
+        <div id="drugList" class="drug-list"></div>
+        <div class="button-row">
+          <button id="checkInteractionsBtn">Check Interactions</button>
+          <button id="clearAllBtn" class="secondary-btn">Clear All</button>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div id="filtersContainer" class="controls-row hidden">
         <div class="control-group">
           <label for="filterSeverity">Filter by Severity</label>
           <select id="filterSeverity">
             <option value="all">All severities</option>
-            <option value="High">Major</option>
-            <option value="Moderate">Moderate</option>
-            <option value="Low">Minor</option>
+            <option value="high">High Risk</option>
+            <option value="moderate">Moderate Risk</option>
+            <option value="low">Low Risk</option>
           </select>
         </div>
-
         <div class="control-group">
           <label for="sortBy">Sort Results</label>
           <select id="sortBy">
-            <option value="relevance">Relevance</option>
-            <option value="alpha">A → Z</option>
-            <option value="severity">Severity</option>
+            <option value="severity">By Severity</option>
+            <option value="name">By Drug Name</option>
           </select>
         </div>
-
       </div>
     </div>
 
@@ -106,22 +110,5 @@
   </main>
 
   <script src="/script.js"></script>
-
-  <script>
-    // Toggle login → signup
-    document.getElementById('showSignup').addEventListener('click', e => {
-      e.preventDefault();
-      document.getElementById('loginPanel').style.display = 'none';
-      document.getElementById('signupPanel').style.display = 'block';
-    });
-
-    // Toggle signup → login
-    document.getElementById('showLogin').addEventListener('click', e => {
-      e.preventDefault();
-      document.getElementById('signupPanel').style.display = 'none';
-      document.getElementById('loginPanel').style.display = 'block';
-    });
-  </script>
-
 </body>
 </html>
